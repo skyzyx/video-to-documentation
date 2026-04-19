@@ -1,0 +1,1508 @@
+00:00.000 --> 00:03.940
+Hello, welcome to another episode of Rethink Connectivity. And in this episode,
+
+00:03.940 --> 00:09.040
+we're going to be talking about Kafka and NATS and comparing the two. And we're not going to be
+
+00:09.040 --> 00:13.160
+necessarily jumping in and doing a head-to-head or benchmarks or anything like that, but rather
+
+00:13.160 --> 00:17.440
+explain a lot of the concepts and distributed computing problems that each of these technologies
+
+00:17.440 --> 00:23.060
+solve and what the differences are between those and how each of these projects have actually
+
+00:23.060 --> 00:28.440
+approached those problems. So to help me in talking about Kafka and NATS, I'm going to bring
+
+00:28.440 --> 00:36.040
+on our local expert on the subject, Jean-Noel Moyne, and he's going to chat with us about Kafka.
+
+00:36.040 --> 00:41.320
+And what I'm going to do is I'm going to be kind of taking a back seat and doing some drawing and
+
+00:41.320 --> 00:45.960
+just trying to illustrate some of these concepts and kind of riff with Jean-Noel on how these two
+
+00:45.960 --> 00:52.200
+technologies are compared. And so welcome Jean-Noel to the episode. Thank you. Hello, Jeremy.
+
+00:52.200 --> 00:56.440
+Thank you very much. Yeah. And I know you've been working in distributed computing for a long time.
+
+00:56.440 --> 00:57.680
+You want to give yourself a little intro?
+
+00:58.680 --> 00:58.940
+Sure.
+
+00:59.200 --> 01:06.100
+I'm a field CTO here at Cinedia, but I have been doing distributed computing and designing
+
+01:06.100 --> 01:12.800
+distributed systems for well over 30 years, including a long-stitch at Tipco Software
+
+01:12.800 --> 01:19.060
+where we were doing back then all the messaging systems, distribution messaging systems, such
+
+01:19.060 --> 01:21.100
+as Rendezvous and so on, right?
+
+01:22.840 --> 01:23.320
+Awesome.
+
+01:23.320 --> 01:26.800
+And so you have been working on distributed systems for way longer than I have.
+
+01:27.100 --> 01:30.120
+And I think you have a lot of really cool things to share about Kafka and NAT.
+
+01:30.240 --> 01:32.420
+And so what do we want to start with?
+
+01:34.400 --> 01:37.920
+A couple of initial points, I think.
+
+01:39.200 --> 01:43.680
+One of them is something I'll briefly mention to set the stage a little bit.
+
+01:44.140 --> 01:48.180
+I can have a historically hard, you know, the difference between the two.
+
+01:48.180 --> 01:55.200
+and then go into at least two very important fundamental differences
+
+01:55.200 --> 01:59.060
+to the same problem, right?
+
+02:00.520 --> 02:06.380
+And how we compare to this and that between Jetstream and Kafka.
+
+02:07.040 --> 02:09.220
+All right. Great.
+
+02:09.500 --> 02:13.400
+And then we can go later on into more details.
+
+02:13.400 --> 02:15.140
+But let's keep it at...
+
+02:15.140 --> 02:19.620
+to keep it at a kind of higher level and purely functional level to start with all right so let's
+
+02:19.620 --> 02:27.940
+go over some of the biggest differences then right so uh one of the uh for background to understand
+
+02:27.940 --> 02:35.460
+a difference is about messaging versus streaming right kafka was designed from the start to be a
+
+02:35.460 --> 02:40.020
+a quote unquote streaming processing platform.
+
+02:41.440 --> 02:46.440
+While NATS historically came as being first and foremost,
+
+02:47.000 --> 02:49.120
+a messaging system.
+
+02:49.120 --> 02:53.100
+And then, you know, later on,
+
+02:53.100 --> 02:55.740
+a persistence functionality,
+
+02:55.740 --> 02:59.740
+persistence layer was added on top of that messaging system,
+
+02:59.740 --> 03:00.800
+that persistence layer,
+
+03:00.800 --> 03:04.560
+distributed persistence layer being called Jetstream.
+
+03:04.560 --> 03:13.920
+Now, NATS plus Jetstream does give you streaming processing functionally.
+
+03:13.920 --> 03:19.200
+They're slightly different, but comparable to what you can get with Kafka.
+
+03:20.000 --> 03:25.280
+And that brings us to these comparisons because people have been noticing this and
+
+03:26.080 --> 03:30.320
+I've been asking regularly and quite often, what is the differences between the two?
+
+03:30.320 --> 03:33.600
+Because indeed, they both can do very similar things, right?
+
+03:33.600 --> 03:51.220
+But the first thing to understand kind of as a background, right, is that although Kafka can be used for some messaging type of use cases, it really is not initially meant or designed to be a messaging system, right?
+
+03:52.500 --> 04:02.280
+The very important thing to know is that Apache Kafka is meant from the start to be a distributed log processing platform, right?
+
+04:02.280 --> 04:08.820
+It is semi-real-time, but not real-real-time.
+
+04:09.540 --> 04:12.520
+And that's something coming from themselves, admitting that.
+
+04:14.780 --> 04:20.500
+So people have been using it, as I said, to do forms of publish-subscribe
+
+04:20.500 --> 04:27.840
+and trying to use Kafka for queues, for example, and things like that.
+
+04:27.840 --> 04:33.920
+But it is not a proper messaging system like Core NATS is.
+
+04:35.660 --> 04:45.400
+And we can later go into a lot of the differences between messaging versus streaming aspect.
+
+04:45.400 --> 05:04.300
+But suffice to say, at a high level, NATS was initially designed as a low latency, high throughput, high fan out messaging system, implementing publish subscribe with subject based addressing, right?
+
+05:04.300 --> 05:09.640
+implementing proper interactive request reply,
+
+05:11.440 --> 05:15.420
+and implementing proper queuing, as in a message queue, right?
+
+05:17.920 --> 05:24.180
+On the other hand, again, Kafka is distributed log processing
+
+05:24.180 --> 05:29.180
+upon which you can do some simple forms of PubSub.
+
+05:30.680 --> 05:33.660
+You do not have any concept of subject-based addressing,
+
+05:33.660 --> 05:45.540
+per se. You could try to use a topic as a queue, but it's not really the same. And there's
+
+05:45.540 --> 05:53.140
+no, you can try to do request reply by doing some kind of CQRS type processing, but it's
+
+05:53.140 --> 06:00.520
+again, not the same as having a proper request reply like we mean it in NATS, right?
+
+06:00.520 --> 06:19.340
+Gotcha. So tell me a little bit about some of the, maybe some more of the kind of the technical details and the trade-offs of designing around like a distributed log versus something more akin to NATS, where we start with the messaging and pub sub layer, and then we layer kind of this storage mechanism on top of it.
+
+06:19.700 --> 06:23.760
+Right. And this is where we start getting into what I call the fundamental differences.
+
+06:24.280 --> 06:24.460
+Yep.
+
+06:24.460 --> 06:28.520
+Because NATS is our Jetstream, right?
+
+06:28.560 --> 06:31.460
+The streaming functionality is built on top of NATS,
+
+06:31.540 --> 06:35.140
+which is a proper messaging system with subject-based addressing.
+
+06:36.500 --> 06:43.000
+The very first very big difference is that Jetstream, right?
+
+06:43.000 --> 06:48.060
+Streaming functionalities in NATS are subject-based aware, right?
+
+06:48.980 --> 06:50.500
+What does that mean, right?
+
+06:51.200 --> 06:53.920
+And I'll compare the two right now, right?
+
+06:54.460 --> 06:56.920
+In Kafka, you have topics, right?
+
+06:58.020 --> 07:00.400
+You may think topics are kind of like subjects,
+
+07:00.620 --> 07:02.260
+but they're not the same as subjects, right?
+
+07:03.140 --> 07:05.820
+The difference is the topic is just a string, right?
+
+07:06.460 --> 07:11.280
+And though there is the ability to try to match the strings,
+
+07:11.340 --> 07:13.100
+again, a regular expression,
+
+07:13.820 --> 07:16.640
+but then the client has to continuously go and refresh
+
+07:16.640 --> 07:19.160
+and rematch all the list of known topics
+
+07:19.160 --> 07:20.660
+against its regular exception
+
+07:20.660 --> 07:24.080
+to try to see if there's a new topic that you may stress it into.
+
+07:24.460 --> 07:30.660
+Typically, in Kafka, a topic is only one subject, right?
+
+07:31.340 --> 07:34.200
+And a stream is just one topic.
+
+07:34.580 --> 07:39.520
+So what we mean by that is that when you record messages into a stream in Kafka,
+
+07:40.020 --> 07:43.160
+you just have basically all the messages of the same subject.
+
+07:44.340 --> 07:48.560
+Compare that to subject-based addressing with Jetstream, right?
+
+07:48.560 --> 07:55.740
+it means that you can actually address messages by subject.
+
+07:55.960 --> 07:56.940
+What do we mean by that?
+
+07:57.060 --> 08:00.200
+So first of all, maybe we want to explain very briefly
+
+08:00.200 --> 08:03.560
+how subject-based addressing works, right?
+
+08:03.660 --> 08:07.000
+So subject-based addressing, a subject is essentially a string,
+
+08:07.320 --> 08:08.440
+but it's multi-part.
+
+08:08.600 --> 08:11.500
+There's dots between what we call tokens, right?
+
+08:12.300 --> 08:15.820
+And one big difference there is it has a hierarchy, right?
+
+08:15.820 --> 08:30.040
+So that means that you can not just look up messages in a stream by exact subject, but you can also do kind of like queries if you want, right?
+
+08:30.580 --> 08:39.880
+Leveraging the hierarchical organization of the tokens in the subject using the wildcards, right?
+
+08:39.880 --> 08:41.860
+and there's two kinds of wildcards.
+
+08:42.640 --> 08:45.080
+A star wildcard, which means it's a partial wildcard,
+
+08:45.260 --> 08:49.560
+which means it matches any value for that particular token.
+
+08:50.780 --> 08:52.960
+And then that greater than,
+
+08:53.200 --> 08:55.880
+which is the full trailing wildcard, right,
+
+08:56.400 --> 09:01.920
+means match however many tokens may be after this, right?
+
+09:02.260 --> 09:03.820
+So in your example here, right,
+
+09:03.820 --> 09:07.540
+you got foo.bar.star.greater than, right?
+
+09:07.540 --> 09:11.920
+it will match anything that starts with foo.bar
+
+09:11.920 --> 09:14.860
+then has one token, no matter what that value is,
+
+09:15.300 --> 09:18.840
+and then has one or more tokens again after that.
+
+09:19.580 --> 09:26.300
+So foobar.x.y will match.
+
+09:26.900 --> 09:31.640
+foo.bar.x.y.z, that will match as well.
+
+09:31.640 --> 09:42.680
+foo.bar.x will not match in this particular case because it's missing the dot and more tokens after that.
+
+09:43.120 --> 09:43.460
+Gotcha.
+
+09:43.980 --> 09:47.800
+And let's actually make this, I'm using foo.bar, but that's not very descriptive.
+
+09:47.800 --> 09:52.040
+So let's actually use a more practical example like e-commerce maybe.
+
+09:52.040 --> 10:01.160
+So we might say like orders dot, we might want to listen on orders dot, you know, star dot greater than, let's say.
+
+10:02.360 --> 10:04.700
+And so we're using this first token.
+
+10:05.000 --> 10:06.080
+It's kind of a marker.
+
+10:06.580 --> 10:08.260
+And I'll tell you that, you know, in a minute.
+
+10:08.560 --> 10:16.120
+But then we can use this to kind of, in a sense, like kind of use these tokens as an index of sorts, right?
+
+10:16.460 --> 10:16.640
+Right.
+
+10:16.640 --> 10:18.300
+You can do all the really interesting things with it.
+
+10:18.780 --> 10:19.180
+Absolutely.
+
+10:19.460 --> 10:20.660
+So this is the whole point, right?
+
+10:22.040 --> 10:26.340
+In Jetstream, you can literally, what I mean by subject-based addressing,
+
+10:26.520 --> 10:30.260
+you can address individual messages or series of messages
+
+10:30.260 --> 10:33.040
+directly in the stream, right?
+
+10:34.560 --> 10:38.960
+So, as I said, you can do like an equivalent of a get, right?
+
+10:39.160 --> 10:43.840
+Say, give me all the messages that are on subject
+
+10:43.840 --> 10:47.080
+orders.eu.12345, right?
+
+10:47.080 --> 10:52.180
+Or you can do what I call essentially simple queries, right?
+
+10:52.800 --> 10:58.840
+Such as give me all the orders in the US would be orders.us.star, right?
+
+11:00.000 --> 11:06.540
+Another example of the taximony for subject names would be with sensors producing events.
+
+11:06.540 --> 11:17.740
+You could have sensor dot something like a sensor type dot a particular sensor ID dot an event type, right?
+
+11:18.800 --> 11:25.880
+And so you can say give me all the messages for sensor type temperature sensors, right?
+
+11:26.460 --> 11:32.680
+You could add some kind of location and it could be sensor dot region dot et cetera, et cetera.
+
+11:32.680 --> 11:39.820
+So now you can say, give me all the sensor data for sensors located in region US East.
+
+11:41.400 --> 11:50.180
+Essentially, it is the ability to do simple queries and to organize your messages using those subject-based addressing and taxonomy.
+
+11:50.600 --> 12:01.620
+And as I said, you can do a get, access a single message or match a particular subject or do those kinds of queries.
+
+12:01.620 --> 12:21.600
+In comparison with Kafka, Apache Kafka has no way to address individual messages in a stream besides sequence number or what's called an offset, which is the combination of a partition number and a sequence number.
+
+12:22.900 --> 12:30.180
+So messages in Kafka, when they're published, and I'll go more into that, they're published in a topic, one stream, one topic, right?
+
+12:30.180 --> 12:38.660
+and you can provide a field when you publish a message that's called a key right but the key
+
+12:38.660 --> 12:45.960
+unlike a subject in kafka is purely used for one thing and one thing only which is
+
+12:45.960 --> 12:55.120
+distribution over the partitions okay that's it there's no way to say give me all the messages
+
+12:55.120 --> 13:00.280
+in that topic where the key equals one, right?
+
+13:00.800 --> 13:01.220
+Right.
+
+13:01.580 --> 13:03.200
+Or give me all the messages.
+
+13:04.200 --> 13:06.200
+It's also a singular field, right?
+
+13:06.220 --> 13:07.040
+A single key.
+
+13:07.180 --> 13:10.120
+It's not like a subject if you compare again
+
+13:10.120 --> 13:15.380
+because it has tokens and you can do wildcard matching.
+
+13:15.800 --> 13:17.800
+It's like a composite key, right?
+
+13:19.920 --> 13:24.180
+Here, there's just one key and it's only used for one thing.
+
+13:25.120 --> 13:30.240
+hashing and figuring out which partition of the topic that particular message will go to.
+
+13:30.240 --> 13:36.160
+And it's not used to address individual messages. As I said, the offset is the only way to address
+
+13:36.160 --> 13:44.560
+messages. And that's a big difference. It also means very simply that if you are in Kafka,
+
+13:45.280 --> 13:51.600
+and let's say you decide to have market data, for example, right? You have Nasdaq.
+
+13:51.600 --> 13:56.760
+NASDAQ dot, you know, you'd say, and then in NASDAQ, you have IBM, Microsoft, Apple,
+
+13:56.880 --> 14:03.720
+et cetera, all the different, um, ticker names, right. For the, uh, instruments. Uh, so you
+
+14:03.720 --> 14:08.000
+can't, you don't want to, you know, you have NASDAQ, you may have a hundred thousand different,
+
+14:08.000 --> 14:14.840
+uh, instruments out there, uh, just on NASDAQ. Right. Uh, and you're not going to create
+
+14:14.840 --> 14:16.160
+100,000 topics.
+
+14:16.960 --> 14:17.180
+Right.
+
+14:18.040 --> 14:22.380
+I mean, you could try, but you probably shouldn't.
+
+14:23.620 --> 14:25.200
+So you say, okay, great.
+
+14:25.320 --> 14:27.460
+Okay, well, we're going to create one topic for NASDAQ,
+
+14:27.520 --> 14:29.860
+maybe another one for NYSE, another one for this and that.
+
+14:30.020 --> 14:34.840
+And then we're going to use the equity name as the key, right?
+
+14:35.060 --> 14:38.360
+IBM, MSFT for Microsoft, et cetera, right?
+
+14:39.120 --> 14:43.020
+Now, let's say you go and say, okay, if all you want to do is say,
+
+14:43.020 --> 14:45.140
+give me all the ticks, right?
+
+14:45.440 --> 14:48.300
+All the updates for the last day or whatever,
+
+14:48.500 --> 14:50.280
+or since the start of my stream.
+
+14:50.480 --> 14:51.060
+Yeah, no problem.
+
+14:51.140 --> 14:51.840
+That's easy to do.
+
+14:51.940 --> 14:53.000
+You can do that with Kafka.
+
+14:53.500 --> 14:54.220
+But now if you say,
+
+14:54.600 --> 14:58.100
+I'm only interested in updates, ticks for Microsoft, for example.
+
+14:59.240 --> 15:03.080
+Well, there's no real other option than to,
+
+15:04.020 --> 15:05.720
+you know, with Apache Kafka,
+
+15:05.940 --> 15:09.380
+essentially the broker has to send all the messages
+
+15:09.380 --> 15:12.600
+for the topic to some process.
+
+15:12.600 --> 15:16.640
+i.e. the client application or maybe something like Kafka stream process,
+
+15:17.340 --> 15:21.400
+which then has to go and look at each message, look at the key and say,
+
+15:21.540 --> 15:24.060
+oh, is that IBM or Microsoft?
+
+15:24.220 --> 15:24.360
+No.
+
+15:24.740 --> 15:24.980
+Okay.
+
+15:25.140 --> 15:27.560
+Discard, discard, and just keep the one that it's interested in.
+
+15:28.300 --> 15:33.220
+So it's arguably a very inefficient way to do this
+
+15:33.220 --> 15:38.500
+because you're transferring all the data over the network to somewhere else
+
+15:38.500 --> 15:41.640
+where you are discarding, assumedly, most of it, right?
+
+15:41.640 --> 15:58.520
+When you are doing filtering of messages in Jetstream, again, you can say directly this get operation to tell me, give me the first message for Microsoft.
+
+15:58.940 --> 16:01.720
+So the subject here would be Nasdaq.Microsoft.
+
+16:02.040 --> 16:06.340
+And you'd say I'm creating a stream that captures Nasdaq.Star.
+
+16:07.100 --> 16:10.740
+Now you can do get the first or get the last message.
+
+16:10.740 --> 16:14.900
+That's a single operation that goes directly and gets serviced very quickly because internally,
+
+16:15.700 --> 16:19.940
+Jetstream maintains indexes on those subject names that are contained into the streams.
+
+16:20.580 --> 16:27.220
+So it's not like it's scanning through the whole set of messages and sending you that matches.
+
+16:27.220 --> 16:35.300
+It's actually using indexing to very quickly find those messages that match. Or you can say,
+
+16:35.300 --> 16:40.180
+say, you know, I mean, you could even go and say, I have a stream that's market data. And
+
+16:40.180 --> 16:45.980
+it's then the second token is whether it's nice or NASDAQ. And then the third token is
+
+16:45.980 --> 16:52.840
+the, is the, you know, the name for the instrument, right? So you could then do a query and say,
+
+16:52.840 --> 16:58.020
+give me everything for NASDAQ or give me for nice. And I see again is going to do the filtering
+
+16:58.020 --> 17:02.600
+at the server and only transmit to your client application, the matching messages.
+
+17:02.600 --> 17:10.160
+Gotcha. So let's say we have clients over here on the NAT side. And these are essentially,
+
+17:10.160 --> 17:13.400
+there's kind of another layer of indirection here. And I know we'll probably do a much
+
+17:13.400 --> 17:18.600
+deeper dive on these. But we have the stream that kind of lives over here on the server.
+
+17:18.600 --> 17:23.460
+And then we have the clients over here. What's controlling kind of this filtering mechanism
+
+17:23.460 --> 17:27.360
+for the stream? You want to talk a little bit about consumers in that way?
+
+17:27.360 --> 17:32.160
+Sure. I mean, the whole consumer is a whole ball of urine by itself.
+
+17:32.660 --> 17:35.800
+But it's actually not a bad thing to start mentioning it here.
+
+17:36.620 --> 17:41.640
+And specifically, actually, it's not a bad place to mention this,
+
+17:41.740 --> 17:46.040
+but in terms of terminology, there's a potential confusion
+
+17:46.040 --> 17:48.880
+between Kafka and Jetstream
+
+17:48.880 --> 17:51.560
+because they're using slightly different terms for the same thing.
+
+17:51.560 --> 18:04.380
+So, long story short, the Kafka's concept of consumer groups is what in Jetstream we call just consumers, right?
+
+18:05.080 --> 18:05.240
+Yeah.
+
+18:05.600 --> 18:11.960
+Consumers, like consumer groups, can be shared by multiple client applications, right?
+
+18:11.960 --> 18:15.980
+such that the messages are then distributed
+
+18:15.980 --> 18:19.380
+between those client applications
+
+18:19.380 --> 18:22.220
+that subscribe, as that's the term we use,
+
+18:22.740 --> 18:24.660
+to that consumer, right?
+
+18:24.720 --> 18:26.060
+Just like in Kafka,
+
+18:26.240 --> 18:27.900
+the client applications are called consumers.
+
+18:28.680 --> 18:30.940
+What we call consumer is a consumer group, right?
+
+18:31.560 --> 18:33.840
+And consumers consume from consumer group.
+
+18:34.520 --> 18:36.240
+In our case, it's just client applications
+
+18:36.240 --> 18:37.520
+consumed from a consumer.
+
+18:37.640 --> 18:38.700
+You can look at a consumer
+
+18:38.700 --> 18:40.920
+and that's another difference as well.
+
+18:41.960 --> 18:47.540
+in Jetstream as essentially like a view on a stream, right?
+
+18:48.140 --> 18:51.120
+Because they can have a filter, right?
+
+18:53.400 --> 18:56.260
+And they can be shared, right?
+
+18:57.220 --> 19:00.180
+And they can do the filtering for you.
+
+19:00.340 --> 19:03.460
+So just like you would create a view and a database
+
+19:03.460 --> 19:05.780
+and another table from another table filtering
+
+19:05.780 --> 19:09.160
+and select something where, you know,
+
+19:09.160 --> 19:14.360
+uh exchange equals nasdaq whatever right and now you have that table that just has the nasdaq
+
+19:14.360 --> 19:19.960
+matching rows it's the same thing some way same way you can look at a consumer group in our case
+
+19:19.960 --> 19:27.080
+so it also has state that's the difference uh consumer groups in uh kafka don't necessarily
+
+19:27.080 --> 19:32.600
+have state themselves it's uh up to the application the client application to physical consumers to
+
+19:32.600 --> 19:36.960
+find a way to persist somehow their offset where they are currently.
+
+19:37.880 --> 19:43.680
+While in the case of the consumers in Jetstream,
+
+19:44.160 --> 19:51.380
+they have a state, i.e. pointers to where in the set of messages they are,
+
+19:51.720 --> 19:54.900
+which message have been acknowledged or not, etc.
+
+19:55.640 --> 19:58.740
+I'll spend a little bit later more explaining in details
+
+19:58.740 --> 20:02.120
+the possibilities of the consumers in Jetstream.
+
+20:02.600 --> 20:06.000
+when we talk about comparing to queues and things like that.
+
+20:06.380 --> 20:06.600
+Right.
+
+20:07.300 --> 20:09.780
+But I think at a high level, it's good to note, like you said,
+
+20:09.820 --> 20:12.900
+they have state and that state exists on the NAT server.
+
+20:13.060 --> 20:13.540
+That's right.
+
+20:13.640 --> 20:16.380
+There's nothing for the cloud application to persist ever.
+
+20:16.740 --> 20:20.000
+Yeah, so the clients are actually purely stateless in that.
+
+20:20.560 --> 20:21.000
+Exactly.
+
+20:21.780 --> 20:24.860
+And not only that, but there's no need of partitions.
+
+20:25.760 --> 20:26.820
+They're completely partitionless.
+
+20:26.820 --> 20:31.380
+So you do not need to, and it's, again, a pretty big difference
+
+20:31.380 --> 20:34.300
+with Kafka is that Kafka,
+
+20:35.260 --> 20:37.100
+if you look at it close enough,
+
+20:37.260 --> 20:39.800
+everything Kafka is designed for
+
+20:39.800 --> 20:42.860
+having just one cloud application
+
+20:42.860 --> 20:46.080
+at a time working on a topic.
+
+20:47.260 --> 20:49.660
+Obviously, that would not be good
+
+20:49.660 --> 20:53.120
+if it wasn't the problem
+
+20:53.120 --> 20:55.000
+of having just one guy being able to consume
+
+20:55.000 --> 20:56.380
+on a topic at a certain time
+
+20:56.380 --> 20:58.080
+by doing partitioning.
+
+20:58.080 --> 21:13.000
+But that means that if you want to distribute messages in a topic amongst a set of client applications consuming those messages, you must use partitioning in Kafka.
+
+21:14.080 --> 21:18.760
+In Jetstream, you, by default, do not use any partitioning.
+
+21:18.760 --> 21:31.980
+And, and I can go into that later on as well, you can actually artificially create partitions if you want, using functionalities that live in a server again.
+
+21:31.980 --> 21:41.380
+So if you do want partitioning, and I'm talking about deterministic, you know, hashing, like consistent hashing type of thing,
+
+21:41.380 --> 21:56.360
+In this case, you use the subject or whichever tokens of the subjects make up your composite key upon which you want to distribute as the source of calculation,
+
+21:56.360 --> 22:08.500
+which then inserts a token in the subject that has a partition number, such as then if you have messages on foo.aa, they go in partition one.
+
+22:08.500 --> 22:11.280
+foo.baz goes in partition 2,
+
+22:11.460 --> 22:15.080
+foo.bat goes in partition 4, etc.
+
+22:16.000 --> 22:18.240
+So the same as Kafka and I expect
+
+22:18.240 --> 22:20.560
+that any message on foo.bar
+
+22:20.560 --> 22:22.840
+always goes to the same partition, right?
+
+22:23.340 --> 22:23.620
+Awesome.
+
+22:23.840 --> 22:25.180
+I think that's a really good time
+
+22:25.180 --> 22:27.680
+to move on to our second biggest difference
+
+22:27.680 --> 22:28.840
+between NATS and Kafka,
+
+22:29.100 --> 22:31.220
+and that is data storage
+
+22:31.220 --> 22:32.740
+and how we kind of store the data.
+
+22:32.980 --> 22:34.180
+Do you want to talk about that a little bit?
+
+22:35.060 --> 22:35.340
+Yes.
+
+22:35.340 --> 22:45.900
+So the second, to me, big fundamental difference between Kafka and Jetstream is Kafka is really
+
+22:45.900 --> 22:53.900
+designed for distributed log processing. And at its core, Apache Kafka, that's the only thing it
+
+22:53.900 --> 23:00.940
+does, distributed log processing. And as such, the way it stores the data is in a write-ahead log.
+
+23:00.940 --> 23:07.980
+log, right? But again, that means that the only thing you can do in a write ahead log
+
+23:07.980 --> 23:15.740
+is add a message in the end, right? Sorry, at the head, right? And do tell compaction,
+
+23:15.740 --> 23:22.900
+right? To drop the tail end of the stream, right? A big difference there is that there's
+
+23:22.900 --> 23:28.940
+more than one. But first big obvious difference, there's no ability to delete individual messages
+
+23:28.940 --> 23:34.020
+into a Kafka stream.
+
+23:34.020 --> 23:38.700
+In comparison, Jetstream is more like a data store.
+
+23:38.700 --> 23:43.840
+Like you would expect it has the functionality that you expect of a form of database.
+
+23:43.840 --> 23:48.620
+Like if you want to call it that, a NoSQL database.
+
+23:48.620 --> 23:57.100
+That includes the ability to delete individual messages.
+
+23:57.100 --> 24:01.900
+But also, it's again a big difference, right?
+
+24:01.900 --> 24:05.900
+Kafka is designed to take incoming data.
+
+24:05.900 --> 24:07.560
+You can throw, it's very good at that.
+
+24:07.560 --> 24:11.000
+You can throw all the data you want at it.
+
+24:11.000 --> 24:15.420
+You can open the firehose and let it get the data in.
+
+24:15.420 --> 24:20.880
+And then typically it stays in Kafka briefly until it's, let's say, distributed to a data
+
+24:20.880 --> 24:26.140
+lake or analytics, something like that, right?
+
+24:26.140 --> 24:29.400
+So it's designed to always want to accept rights.
+
+24:29.640 --> 24:29.740
+Yeah.
+
+24:30.200 --> 24:38.120
+There's no concept of a right being denied other than the stream being full on a maximum size.
+
+24:38.220 --> 24:38.380
+Right.
+
+24:38.780 --> 24:38.980
+Yeah.
+
+24:39.760 --> 24:48.400
+On the other hand, with Jetstream, you have the choice as to what happens when you hit a limit.
+
+24:48.480 --> 24:49.980
+So first thing is you can have limits.
+
+24:49.980 --> 24:50.220
+Right.
+
+24:50.220 --> 24:57.020
+The only limit basically in Kafka is to say, okay, I only can store so many messages or such amount of time, right?
+
+24:58.360 --> 25:11.660
+In Jetstream, because it is subject, it certainly has these limits of being saying, I want so many messages maximum or one day maximum, right?
+
+25:11.980 --> 25:16.000
+But you can also have limits on per subject basis.
+
+25:16.000 --> 25:20.720
+So you can say, I only want four messages per subject, right?
+
+25:22.220 --> 25:25.060
+Can't do that with Kafka, right?
+
+25:25.620 --> 25:31.440
+Kafka, the closest that it has to this is when it does the tail compaction,
+
+25:32.400 --> 25:40.360
+you have a mode where it goes and says and makes sure that it keeps at least one message with a particular key value, right?
+
+25:40.360 --> 25:43.060
+But it's an at least, right?
+
+25:44.900 --> 25:46.640
+Not exactly, right?
+
+25:48.360 --> 25:53.320
+Jetstream, if you say, I want a limit of one message per subject,
+
+25:54.020 --> 25:56.220
+it's a limit of exactly one, right?
+
+25:56.340 --> 25:58.080
+Not a at least once, right?
+
+25:58.880 --> 26:04.800
+And then you have the ability to specify what we call the discard policy, right?
+
+26:04.860 --> 26:08.840
+Which says, when a limit is hit, you have two options.
+
+26:08.840 --> 26:15.820
+One is you delete an older message to make room, so you stay within the limit.
+
+26:16.940 --> 26:21.440
+But the other one is the ability to reject the write, yeah?
+
+26:22.560 --> 26:25.940
+And to say, no, you're already at your limit, right?
+
+26:26.540 --> 26:31.580
+So essentially what this means is you can have, like, constraints like you have in a database, right?
+
+26:31.580 --> 26:39.760
+And you can combine that with the fact that you can have a limit per subject to do all kinds of interesting things,
+
+26:39.760 --> 26:46.580
+such as using a stream for distributed locking, logic gating, things like that,
+
+26:47.100 --> 26:55.360
+where you say, for example, make sure that, as I said, you only have at one point only one message with a particular subject.
+
+26:56.860 --> 27:01.180
+And if someone tries to insert or publish another message with the same subject,
+
+27:01.580 --> 27:05.560
+they would get a failure back in the acknowledgement saying that limit is rich.
+
+27:05.900 --> 27:08.120
+So that's another big difference.
+
+27:09.360 --> 27:16.840
+And finally, when you combine all those things together,
+
+27:17.700 --> 27:22.180
+you can really do much more interesting higher level features.
+
+27:22.980 --> 27:31.260
+Obviously, the most obvious one is that Jetstream allows you to use the data store functionality
+
+27:31.260 --> 27:35.760
+not just for streaming, but also for a key value store
+
+27:35.760 --> 27:38.040
+and an object store, right?
+
+27:39.080 --> 27:43.920
+This is only possible because both you have subject-based addressing
+
+27:43.920 --> 27:49.880
+in streams and you have this ability to have constraints,
+
+27:50.120 --> 27:51.800
+you know, limits that are enforced,
+
+27:52.340 --> 27:59.840
+and the ability to either use the stream as a last value store,
+
+27:59.840 --> 28:03.940
+meaning that if I say I want five messages,
+
+28:04.220 --> 28:06.720
+an history of five on that subject,
+
+28:07.420 --> 28:09.120
+if I publish a sixth one,
+
+28:09.260 --> 28:12.220
+well, it just deletes the oldest one on that subject
+
+28:12.220 --> 28:14.220
+and just keeps the last five, right?
+
+28:15.360 --> 28:21.180
+And then the other and final point I wanted to make here,
+
+28:21.300 --> 28:23.280
+which to me I think is very important as a difference,
+
+28:23.920 --> 28:28.740
+is the fact that Jetstream, besides being able to delete,
+
+28:28.740 --> 28:31.340
+has also the ability,
+
+28:31.520 --> 28:34.600
+basically what I would call CRUD operations, right?
+
+28:35.460 --> 28:38.960
+So that means you can control concurrency access control.
+
+28:40.020 --> 28:42.480
+In Kafka, basically if there's room,
+
+28:43.240 --> 28:45.740
+it will accept the right always, right?
+
+28:46.380 --> 28:48.440
+There's no concept of two guys publishing
+
+28:48.440 --> 28:52.580
+on the same topic with the same key
+
+28:52.580 --> 28:56.080
+and trying to avoid them overstepping
+
+28:56.080 --> 28:57.060
+and control that, right?
+
+28:57.060 --> 28:59.060
+and getting into data race conditions.
+
+29:00.020 --> 29:05.740
+With Jetstream, you have, as I said, the ability to do an insert,
+
+29:06.040 --> 29:09.980
+meaning I want you to put that message in the stream
+
+29:09.980 --> 29:15.560
+only if there is not already a message at that subject.
+
+29:15.560 --> 29:24.560
+You can do insert, update,
+
+29:24.560 --> 29:27.000
+meaning that you control this,
+
+29:27.000 --> 29:28.020
+you compare and set operation,
+
+29:28.260 --> 29:28.780
+you can say,
+
+29:29.460 --> 29:30.900
+I'm going to,
+
+29:31.020 --> 29:33.760
+I know that currently the last value for that subject,
+
+29:34.160 --> 29:36.560
+last message is message sequence 37,
+
+29:37.320 --> 29:38.060
+whatever it is, right?
+
+29:39.080 --> 29:41.840
+Such that then when you do your publish,
+
+29:42.000 --> 29:44.380
+you say, I'm going to publish this message on this subject,
+
+29:44.480 --> 29:46.940
+and I'm expecting the current last message on that subject
+
+29:46.940 --> 29:49.940
+to be sequence number 37, whatever it is.
+
+29:50.400 --> 29:52.380
+And if it has been changed,
+
+29:52.740 --> 29:53.860
+then that operation fails.
+
+29:53.860 --> 29:56.240
+So it's a very classic compare and set operation.
+
+29:57.000 --> 30:01.760
+And that means you can use this to do an update
+
+30:01.760 --> 30:06.720
+or an insert, which is update from no value, right?
+
+30:07.800 --> 30:08.500
+Seminoles create.
+
+30:09.240 --> 30:12.580
+Or you can do what is the only option in Kafka,
+
+30:12.700 --> 30:14.500
+which is an absurd, which is simply,
+
+30:14.800 --> 30:16.600
+if there is nothing, it will insert it.
+
+30:16.980 --> 30:19.820
+If there is something, it will overwrite it, basically.
+
+30:19.820 --> 30:40.020
+But, you know, you don't have the concept of being able to have concurrency access control in Kafka where two guys publish to the same topic on the same key and be able to pick which one is first, which one is last and avoid, you know, the problem of blindly over updating a value and overwriting an update from someone else.
+
+30:41.600 --> 30:42.040
+Awesome.
+
+30:42.040 --> 30:58.280
+So, you know, to put it back together, right, the subject-based addressing, the fact that you can do gets per key, if you want to call it that, using, you know, Kafka terminology.
+
+30:58.720 --> 31:01.260
+You can do queries doing range of keys, right?
+
+31:02.240 --> 31:07.140
+You can do, you know, constraints.
+
+31:07.140 --> 31:16.140
+You can have limits per subject, per message, size of message, amount of time.
+
+31:16.800 --> 31:18.120
+There's a bunch of things like that.
+
+31:18.700 --> 31:21.980
+You can do deletes of individual messages.
+
+31:22.880 --> 31:29.580
+And you can have CRUD operations, including update to control concurrency access control.
+
+31:31.480 --> 31:36.940
+And just that at a big level, to me, makes Jetstream more, like I said,
+
+31:37.140 --> 31:46.960
+a data store versus purely something that's meant to accept, you know, loads of messages and spit
+
+31:46.960 --> 31:52.960
+them out on the other side in other end partitions. And basically, that's all it does, right?
+
+31:53.720 --> 31:57.720
+Yeah. So at the end of the day, kind of what I'm gathering here is there's a lot more
+
+31:57.720 --> 32:03.060
+kind of semantics that may appeal to folks who are writing like, you know, all kinds of different
+
+32:03.060 --> 32:06.120
+applications inside of NATS.
+
+32:06.380 --> 32:10.840
+And mainly because NATS is kind of taking this more generalized approach to a
+
+32:10.840 --> 32:13.640
+data store. It's indexing things off of subjects,
+
+32:13.640 --> 32:16.200
+which are naturally just very, very flexible.
+
+32:16.780 --> 32:19.660
+And it allows you to do things like what we showed here with,
+
+32:19.660 --> 32:22.200
+with KV and object store, but also just in stream.
+
+32:22.340 --> 32:24.620
+So it makes streams also just very flexible in general.
+
+32:25.460 --> 32:28.480
+We even have rollups actually. I even forgot to mention that.
+
+32:28.740 --> 32:32.080
+Yeah. Rollups are also really cool too. Yeah. I mean,
+
+32:32.080 --> 32:34.820
+You could talk about them just for a second and I can sketch this out.
+
+32:36.420 --> 32:40.620
+I mean, rollup is another form of controlled update, right?
+
+32:40.680 --> 32:47.440
+Where you say, let's say I have four messages in a particular subject.
+
+32:47.720 --> 32:51.140
+So let's say, for example, you're capturing orders from customers, right?
+
+32:51.680 --> 32:55.160
+And you're publishing messages on order.somekindofcustomerid, right?
+
+32:55.160 --> 32:59.060
+And you have one message is, you know, add $20 to the account.
+
+32:59.060 --> 33:02.140
+Another one is, you know, take away Tony Doris for a second,
+
+33:02.240 --> 33:02.860
+whatever it is, right?
+
+33:03.300 --> 33:04.920
+So they accumulate in a stream.
+
+33:05.680 --> 33:06.820
+A roll-up is something you say,
+
+33:07.000 --> 33:08.140
+I'm going to take all those messages
+
+33:08.140 --> 33:10.720
+and replace them with just one message, right?
+
+33:10.860 --> 33:13.820
+So ideas you'd be summing up or whatever it is,
+
+33:14.200 --> 33:17.100
+all those messages and replacing them with just one message.
+
+33:17.200 --> 33:21.180
+So that's one atomic operation in Jetstream
+
+33:21.180 --> 33:22.220
+that's possible to do.
+
+33:23.080 --> 33:26.400
+Obviously, no concept of being able to do anything like that
+
+33:26.400 --> 33:28.720
+in Kafka topics, right?
+
+33:29.060 --> 33:39.800
+As I said, it's meant for accepting rights on one side and splitting them out on the other side and trimming the tail of the log as possible.
+
+33:39.800 --> 33:49.240
+Well, I think it's safe to say that Kafka, we do see really good scaling, especially for rights and partitioning well.
+
+33:49.860 --> 33:52.220
+And Kafka can get a lot of throughput.
+
+33:52.220 --> 34:06.040
+But the main reason is because operationally, it's a really fast kind of intentionally simple code path to writes in Kafka and to make sure that writes are made out in memory well.
+
+34:06.320 --> 34:09.300
+Right. It's all meant, you know, towards throughput.
+
+34:09.580 --> 34:11.840
+They're not looking for low latency.
+
+34:12.760 --> 34:20.080
+I can mention that briefly because we talked initially about the messaging system part and all that and what is real time versus real, real time.
+
+34:20.080 --> 34:26.900
+I mean, long story short, Kafka, by default, does all kinds of batching, right?
+
+34:27.840 --> 34:31.400
+To go faster with throughput, batching is the key to throughput.
+
+34:31.740 --> 34:32.420
+Same with us.
+
+34:32.520 --> 34:39.920
+You can use asynchronous operations to get much higher write throughputs by doing batching with Jetstream as well.
+
+34:41.140 --> 34:47.680
+But it's really not designed for low latency of individual operations where that really matters.
+
+34:47.680 --> 34:50.800
+The latencies in Kafka typically measures in milliseconds, right?
+
+34:51.680 --> 34:54.960
+While with Coronet and even Jetstream, right?
+
+34:57.200 --> 35:00.080
+We're doing we're measuring things in microseconds, right?
+
+35:00.080 --> 35:07.200
+I mean, over this network, you're talking one to 200 microsecond ranges, you know,
+
+35:07.200 --> 35:11.200
+of one way or even two way latency sometimes, right?
+
+35:11.200 --> 35:16.560
+Actually, in one way, you can even go, you know, with fast network below 100 microseconds.
+
+35:17.680 --> 35:22.960
+I mean, obviously, Kafka is not at that level, right?
+
+35:23.060 --> 35:26.840
+And as I said, you can Google, you know,
+
+35:26.980 --> 35:29.100
+Kafka is not real, real time.
+
+35:29.100 --> 35:33.240
+And you'll find a white paper from someone at Kafka
+
+35:33.240 --> 35:34.240
+saying exactly that.
+
+35:34.940 --> 35:37.800
+You know, you can use it for, you know, good enough real time,
+
+35:37.920 --> 35:39.740
+but not when it really matters.
+
+35:40.360 --> 35:43.420
+And we're seeing that proven over and over again
+
+35:43.420 --> 35:46.580
+with the types of use case people use Jetstream for.
+
+35:46.580 --> 35:55.660
+And I think that's, it kind of gets to more of an engineering trade-off in a lot of ways where, you know, it really depends on what you're doing.
+
+35:55.780 --> 35:56.580
+Do you want high throughput?
+
+35:56.800 --> 35:58.440
+Then like batching is the way to go.
+
+35:58.560 --> 36:02.360
+But batching also trades off, like you can't really do real time when you're batching.
+
+36:02.800 --> 36:15.100
+And so it sounds like NATS is, you know, while it might not have necessarily all of the throughput potential that Kafka has, it gives you a lot more flexibility in terms of being able to say, well, what does my application need here?
+
+36:15.100 --> 36:18.740
+Does it need batching for throughput or does it need to be more real time?
+
+36:19.360 --> 36:27.940
+And I can make those trade-offs, you know, as an engineer and not necessarily have my technology dictate like what I need to do.
+
+36:28.820 --> 36:43.340
+And I think that kind of leads us maybe into a little, you know, cue into maybe what we could talk about for the next episode, which would be in how are these trade-offs kind of made more like at a design and infrastructure level from a distributed computing perspective?
+
+36:43.340 --> 36:44.980
+And what does that mean?
+
+36:45.100 --> 36:53.940
+Because I know that the properties of what Kafka looks like and how to deploy it into production, what NATS looks like and how to deploy it in production are very, very different models.
+
+36:54.140 --> 36:55.360
+And so I think that would be fun too.
+
+36:55.640 --> 36:58.100
+Yeah, we're just scratching the surface here.
+
+36:59.840 --> 37:03.160
+Every time we do a video like this, we know it's going to be longer than we think.
+
+37:04.100 --> 37:05.400
+Because there's a lot.
+
+37:05.540 --> 37:05.960
+And there's a lot.
+
+37:06.720 --> 37:10.680
+It's not everything is totally as black and white as some things.
+
+37:10.680 --> 37:18.280
+There are use cases where we'll fully admit Kafka does it just as well as Jetstream.
+
+37:18.380 --> 37:20.340
+Jetstream also does scale horizontally.
+
+37:20.800 --> 37:24.500
+Kafka scales beautifully horizontally because of partitions.
+
+37:24.760 --> 37:25.520
+These are hard partitions.
+
+37:26.040 --> 37:29.120
+That means you have to deal with partitions, which is another issue.
+
+37:29.220 --> 37:35.220
+But at least it is no doubt proven to be very scalable for accepting rights.
+
+37:35.220 --> 37:35.580
+Yeah.
+
+37:35.580 --> 37:44.760
+Yeah. But, you know, not all use cases are just I have a million events per second that I need to ingest.
+
+37:44.900 --> 37:49.340
+Right. Right. Because I can't possibly deal with them in real time.
+
+37:49.400 --> 37:51.220
+I'm just, you know, temporarily putting them there.
+
+37:51.920 --> 38:03.820
+There's a lot of use cases that, you know, essentially can be done better and potentially arguably more efficiently with Jetstream because it has those extra functionalities.
+
+38:03.820 --> 38:07.500
+of not just being able to ingest a log
+
+38:07.500 --> 38:09.680
+and just process it in a distributed manner.
+
+38:10.160 --> 38:10.280
+Awesome.
+
+38:10.440 --> 38:12.980
+Well, thanks so much, Jean-Noel, for jumping on.
+
+38:13.240 --> 38:14.640
+Can't wait to record the next episode.
+
+38:14.940 --> 38:16.760
+I hope this was helpful for everybody who's watching.
+
+38:17.260 --> 38:18.500
+Hope it was an apt comparison.
+
+38:18.700 --> 38:19.760
+If there's anything that we mentioned
+
+38:19.760 --> 38:20.840
+or said that was inaccurate,
+
+38:21.280 --> 38:23.820
+be sure to ping us in the YouTube comments
+
+38:23.820 --> 38:25.580
+and we'll clear things up.
+
+38:25.680 --> 38:27.120
+We love to kind of correct any errors
+
+38:27.120 --> 38:28.140
+that we have on our part.
+
+38:28.720 --> 38:31.260
+Other than that, stay tuned for the next episode.
+
+38:31.580 --> 38:32.160
+Thanks so much.
+
+38:32.920 --> 38:33.580
+Thanks, Jeremy.
+
+38:33.820 --> 38:34.780
+Talk to you later.
+
+38:35.140 --> 38:35.280
+Bye.

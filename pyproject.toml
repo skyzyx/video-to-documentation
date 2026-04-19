@@ -1,0 +1,13 @@
+[project]
+name = "video-to-documentation"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.96.0",
+    "click>=8.3.2",
+    "ffmpeg-python>=0.2.0",
+    "mlx-lm>=0.31.2",
+    "mlx-whisper>=0.4.3",
+]
